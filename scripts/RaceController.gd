@@ -55,8 +55,9 @@ func _process(delta: float) -> void:
 	for i in horse_nodes.size():
 		var node := horse_nodes[i]
 		var data := horses_data[i]
-		var progress_ratio := clamp(node.race_distance / TRACK_DISTANCE, 0.0, 1.0)
-		var fatigue_multiplier := clamp(float(data["stamina"]) - progress_ratio * 0.35, 0.55, 1.2)
+		var progress_ratio: float = clampf(float(node.race_distance) / float(TRACK_DISTANCE), 0.0, 1.0)
+		var stamina_value: float = float(data.get("stamina", 1.0))
+		var fatigue_multiplier: float = clampf(stamina_value - progress_ratio * 0.35, 0.55, 1.2)
 		var speed_variance := randf_range(-24.0, 24.0)
 		var luck_bonus := 0.0
 		if randf() < (float(data["luck"]) / 100.0) * 0.05:
