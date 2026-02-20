@@ -62,8 +62,8 @@ func _process(delta: float) -> void:
 		if randf() < (float(data["luck"]) / 100.0) * 0.05:
 			luck_bonus = randf_range(10.0, 22.0)
 
-		var move_speed := max(30.0, float(data["base_speed"]) * fatigue_multiplier + speed_variance + luck_bonus)
-		var move_delta := move_speed * delta
+		var move_speed: float = float(max(30.0, float(data["base_speed"]) * fatigue_multiplier + speed_variance + luck_bonus))
+		var move_delta: float = move_speed * delta
 		node.race_distance += move_delta
 		node.position.x += move_delta
 		if node.position.x >= finish_line.position.x and winner_idx == -1:
