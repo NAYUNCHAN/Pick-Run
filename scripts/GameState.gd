@@ -1,5 +1,4 @@
 extends Node
-class_name GameState
 
 const START_COINS := 1000
 const TEMP_MULTIPLIER := 2.0 # TODO: 다음 작업에서 몬테카를로 배당으로 교체

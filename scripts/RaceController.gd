@@ -24,8 +24,8 @@ const TRACK_DISTANCE := 1000.0
 @onready var back_button: Button = $RootMargin/MainVBox/BottomButtons/BackButton
 @onready var report_button: Button = $RootMargin/MainVBox/BottomButtons/ReportButton
 
-@onready var horses_container: Node2D = $TrackArea/HorsesLayer
-@onready var finish_line: ColorRect = $TrackArea/FinishLine
+@onready var horses_container: Node2D = get_node_or_null("%HorsesLayer") as Node2D
+@onready var finish_line: ColorRect = get_node_or_null("%FinishLine") as ColorRect
 @onready var result_panel: PanelContainer = $ResultPanel
 @onready var result_label: Label = $ResultPanel/MarginContainer/ResultVBox/ResultLabel
 @onready var settlement_label: Label = $ResultPanel/MarginContainer/ResultVBox/SettlementLabel
@@ -38,6 +38,11 @@ var is_racing: bool = false
 var race_elapsed: float = 0.0
 
 func _ready() -> void:
+	if not _validate_required_nodes():
+		set_process(false)
+		set_physics_process(false)
+		return
+
 	horses_data = HorseData.get_all_horses()
 	_setup_horses()
 	_setup_ui()
@@ -55,15 +60,16 @@ func _process(delta: float) -> void:
 	for i in horse_nodes.size():
 		var node := horse_nodes[i]
 		var data := horses_data[i]
-		var progress_ratio := clamp(node.race_distance / TRACK_DISTANCE, 0.0, 1.0)
-		var fatigue_multiplier := clamp(float(data["stamina"]) - progress_ratio * 0.35, 0.55, 1.2)
+		var progress_ratio: float = clampf(float(node.race_distance) / float(TRACK_DISTANCE), 0.0, 1.0)
+		var stamina_value: float = float(data.get("stamina", 1.0))
+		var fatigue_multiplier: float = clampf(stamina_value - progress_ratio * 0.35, 0.55, 1.2)
 		var speed_variance := randf_range(-24.0, 24.0)
 		var luck_bonus := 0.0
 		if randf() < (float(data["luck"]) / 100.0) * 0.05:
 			luck_bonus = randf_range(10.0, 22.0)
 
-		var move_speed := max(30.0, float(data["base_speed"]) * fatigue_multiplier + speed_variance + luck_bonus)
-		var move_delta := move_speed * delta
+		var move_speed: float = float(max(30.0, float(data["base_speed"]) * fatigue_multiplier + speed_variance + luck_bonus))
+		var move_delta: float = move_speed * delta
 		node.race_distance += move_delta
 		node.position.x += move_delta
 		if node.position.x >= finish_line.position.x and winner_idx == -1:
@@ -71,6 +77,16 @@ func _process(delta: float) -> void:
 
 	if winner_idx != -1:
 		finish_race(winner_idx)
+
+
+func _validate_required_nodes() -> bool:
+	if horses_container == null:
+		push_error("RaceController: %HorsesLayer not found. Check Race.tscn node name + Unique Name in Owner.")
+		return false
+	if finish_line == null:
+		push_error("RaceController: %FinishLine not found. Check Race.tscn node name + Unique Name in Owner.")
+		return false
+	return true
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
@@ -97,6 +113,8 @@ func _input(event: InputEvent) -> void:
 		start_race()
 
 func _setup_horses() -> void:
+	if horses_container == null:
+		return
 	for child in horses_container.get_children():
 		child.queue_free()
 	horse_nodes.clear()

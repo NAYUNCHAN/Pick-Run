@@ -11,6 +11,22 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_7l0m4")
 
+[node name="TrackArea" type="Node2D" parent="."]
+position = Vector2(24, 266)
+
+[node name="HorsesLayer" type="Node2D" parent="TrackArea"]
+unique_name_in_owner = true
+position = Vector2(0, 0)
+
+[node name="FinishLine" type="ColorRect" parent="TrackArea"]
+unique_name_in_owner = true
+offset_left = 1120.0
+offset_top = 0.0
+offset_right = 1130.0
+offset_bottom = 420.0
+color = Color(0.95, 0.95, 0.95, 1)
+
+
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -121,12 +137,12 @@ custom_minimum_size = Vector2(180, 50)
 layout_mode = 2
 text = "Confirm Bet"
 
-[node name="TrackArea" type="Control" parent="RootMargin/MainVBox"]
+[node name="TrackAreaUI" type="Control" parent="RootMargin/MainVBox"]
 custom_minimum_size = Vector2(0, 420)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="TrackBg" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
+[node name="TrackBg" type="ColorRect" parent="RootMargin/MainVBox/TrackAreaUI"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -135,7 +151,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.2, 0.32, 0.18, 1)
 
-[node name="Lane1" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
+[node name="Lane1" type="ColorRect" parent="RootMargin/MainVBox/TrackAreaUI"]
 layout_mode = 1
 offset_left = 0.0
 offset_top = 20.0
@@ -144,7 +160,7 @@ offset_bottom = 95.0
 anchor_right = 1.0
 color = Color(0.26, 0.42, 0.22, 1)
 
-[node name="Lane2" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
+[node name="Lane2" type="ColorRect" parent="RootMargin/MainVBox/TrackAreaUI"]
 layout_mode = 1
 offset_left = 0.0
 offset_top = 120.0
@@ -153,7 +169,7 @@ offset_bottom = 195.0
 anchor_right = 1.0
 color = Color(0.26, 0.42, 0.22, 1)
 
-[node name="Lane3" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
+[node name="Lane3" type="ColorRect" parent="RootMargin/MainVBox/TrackAreaUI"]
 layout_mode = 1
 offset_left = 0.0
 offset_top = 220.0
@@ -162,7 +178,7 @@ offset_bottom = 295.0
 anchor_right = 1.0
 color = Color(0.26, 0.42, 0.22, 1)
 
-[node name="Lane4" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
+[node name="Lane4" type="ColorRect" parent="RootMargin/MainVBox/TrackAreaUI"]
 layout_mode = 1
 offset_left = 0.0
 offset_top = 320.0
@@ -171,7 +187,7 @@ offset_bottom = 395.0
 anchor_right = 1.0
 color = Color(0.26, 0.42, 0.22, 1)
 
-[node name="FinishLine" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
+[node name="FinishLineUI" type="ColorRect" parent="RootMargin/MainVBox/TrackAreaUI"]
 layout_mode = 1
 offset_left = 1120.0
 offset_top = 0.0
@@ -179,7 +195,7 @@ offset_right = 1130.0
 offset_bottom = 420.0
 color = Color(0.95, 0.95, 0.95, 1)
 
-[node name="HorsesLayer" type="Node2D" parent="RootMargin/MainVBox/TrackArea"]
+[node name="HorsesLayerUI" type="Node2D" parent="RootMargin/MainVBox/TrackAreaUI"]
 position = Vector2(0, 0)
 
 [node name="BottomButtons" type="HBoxContainer" parent="RootMargin/MainVBox"]

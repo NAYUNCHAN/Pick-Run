@@ -27,7 +27,7 @@ func refresh_ui() -> void:
 	var horse_lines: Array[String] = []
 	for horse in HorseData.get_all_horses():
 		var name := str(horse["name"])
-		var hstat := GameState.horse_stats.get(name, {"selected": 0, "wins": 0})
+		var hstat = GameState.horse_stats.get(name, {"selected": 0, "wins": 0})
 		var selected := int(hstat.get("selected", 0))
 		var hwins := int(hstat.get("wins", 0))
 		var hwin_rate := 0.0 if selected == 0 else (float(hwins) / float(selected)) * 100.0
