@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Pick & Run Logo" width="180" />
+<img width="1024" height="559" alt="Image" src="https://github.com/user-attachments/assets/8943286b-860d-4973-86d7-1b01f5766ec5" />
 </p>
 
 <h1 align="center">🐎 Pick & Run</h1>
