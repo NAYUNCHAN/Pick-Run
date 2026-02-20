@@ -1,6 +1,6 @@
 extends Control
 
-@onready var coins_label: Label = $MarginContainer/VBoxContainer/CoinsLabel
+@onready var coins_label: Label = get_node_or_null("%CoinsLabel") as Label
 @onready var start_race_button: Button = $MarginContainer/VBoxContainer/StartRaceButton
 @onready var stats_button: Button = $MarginContainer/VBoxContainer/StatsButton
 @onready var quit_button: Button = $MarginContainer/VBoxContainer/QuitButton
@@ -16,7 +16,10 @@ func _notification(what: int) -> void:
 		refresh_ui()
 
 func refresh_ui() -> void:
-	coins_label.text = "현재 코인: %d" % GameState.coins
+	if coins_label == null:
+		push_error("MainMenu: CoinsLabel not found. Check MainMenu.tscn node name + Unique Name in Owner.")
+		return
+	coins_label.text = "현재 코인: %d" % int(GameState.coins)
 
 func _on_start_race_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Race.tscn")

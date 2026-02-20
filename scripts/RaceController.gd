@@ -24,8 +24,8 @@ const TRACK_DISTANCE := 1000.0
 @onready var back_button: Button = $RootMargin/MainVBox/BottomButtons/BackButton
 @onready var report_button: Button = $RootMargin/MainVBox/BottomButtons/ReportButton
 
-@onready var horses_container: Node2D = $TrackArea/HorsesLayer
-@onready var finish_line: ColorRect = $TrackArea/FinishLine
+@onready var horses_container: Node2D = get_node_or_null("%HorsesLayer") as Node2D
+@onready var finish_line: ColorRect = get_node_or_null("%FinishLine") as ColorRect
 @onready var result_panel: PanelContainer = $ResultPanel
 @onready var result_label: Label = $ResultPanel/MarginContainer/ResultVBox/ResultLabel
 @onready var settlement_label: Label = $ResultPanel/MarginContainer/ResultVBox/SettlementLabel
@@ -38,6 +38,11 @@ var is_racing: bool = false
 var race_elapsed: float = 0.0
 
 func _ready() -> void:
+	if not _validate_required_nodes():
+		set_process(false)
+		set_physics_process(false)
+		return
+
 	horses_data = HorseData.get_all_horses()
 	_setup_horses()
 	_setup_ui()
@@ -73,6 +78,16 @@ func _process(delta: float) -> void:
 	if winner_idx != -1:
 		finish_race(winner_idx)
 
+
+func _validate_required_nodes() -> bool:
+	if horses_container == null:
+		push_error("RaceController: %HorsesLayer not found. Check Race.tscn node name + Unique Name in Owner.")
+		return false
+	if finish_line == null:
+		push_error("RaceController: %FinishLine not found. Check Race.tscn node name + Unique Name in Owner.")
+		return false
+	return true
+
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_on_back_pressed()
@@ -98,6 +113,8 @@ func _input(event: InputEvent) -> void:
 		start_race()
 
 func _setup_horses() -> void:
+	if horses_container == null:
+		return
 	for child in horses_container.get_children():
 		child.queue_free()
 	horse_nodes.clear()

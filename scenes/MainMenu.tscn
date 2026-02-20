@@ -43,6 +43,7 @@ horizontal_alignment = 1
 theme_override_font_sizes/font_size = 56
 
 [node name="CoinsLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "현재 코인: 0"
 horizontal_alignment = 1
