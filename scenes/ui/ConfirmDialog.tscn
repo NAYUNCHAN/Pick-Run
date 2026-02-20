@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[node name="ConfirmDialog" type="ConfirmationDialog"]
+title = "확인"
+dialog_text = "진행할까요?"
+initial_position = 1
+ok_button_text = "확인"
+cancel_button_text = "취소"
