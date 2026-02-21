@@ -20,6 +20,37 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.08, 0.1, 0.12, 1)
 
+[node name="TrackArea" type="Node2D" parent="."]
+position = Vector2(24, 266)
+z_index = 2
+
+[node name="TrackBg" type="ColorRect" parent="TrackArea"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 1200.0
+offset_bottom = 420.0
+color = Color(0.2, 0.32, 0.18, 1)
+z_index = -1
+
+[node name="TrackBgSprite" type="Sprite2D" parent="TrackArea"]
+unique_name_in_owner = true
+visible = false
+centered = false
+z_index = -1
+
+[node name="HorsesLayer" type="Node2D" parent="TrackArea"]
+unique_name_in_owner = true
+position = Vector2(0, 0)
+
+[node name="FinishLine" type="ColorRect" parent="TrackArea"]
+unique_name_in_owner = true
+offset_left = 1120.0
+offset_top = 0.0
+offset_right = 1130.0
+offset_bottom = 420.0
+color = Color(0.95, 0.95, 0.95, 1)
+
 [node name="RootMargin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -45,56 +76,9 @@ text = "보유 코인: 0"
 theme_override_font_sizes/font_size = 24
 
 [node name="HorseCards" type="HBoxContainer" parent="RootMargin/MainVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
-
-[node name="HorseCard1" type="Button" parent="RootMargin/MainVBox/HorseCards"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "1"
-
-[node name="HorseCard2" type="Button" parent="RootMargin/MainVBox/HorseCards"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "2"
-
-[node name="HorseCard3" type="Button" parent="RootMargin/MainVBox/HorseCards"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "3"
-
-[node name="HorseCard4" type="Button" parent="RootMargin/MainVBox/HorseCards"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "4"
-
-[node name="OddsRow" type="HBoxContainer" parent="RootMargin/MainVBox"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Odds1" type="Label" parent="RootMargin/MainVBox/OddsRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "승률/배당1"
-
-[node name="Odds2" type="Label" parent="RootMargin/MainVBox/OddsRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "승률/배당2"
-
-[node name="Odds3" type="Label" parent="RootMargin/MainVBox/OddsRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "승률/배당3"
-
-[node name="Odds4" type="Label" parent="RootMargin/MainVBox/OddsRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "승률/배당4"
 
 [node name="BetPanel" type="HBoxContainer" parent="RootMargin/MainVBox"]
 layout_mode = 2
@@ -121,66 +105,10 @@ custom_minimum_size = Vector2(180, 50)
 layout_mode = 2
 text = "Confirm Bet"
 
-[node name="TrackArea" type="Control" parent="RootMargin/MainVBox"]
+[node name="TrackAreaUI" type="Control" parent="RootMargin/MainVBox"]
 custom_minimum_size = Vector2(0, 420)
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="TrackBg" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.2, 0.32, 0.18, 1)
-
-[node name="Lane1" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
-layout_mode = 1
-offset_left = 0.0
-offset_top = 20.0
-offset_right = 0.0
-offset_bottom = 95.0
-anchor_right = 1.0
-color = Color(0.26, 0.42, 0.22, 1)
-
-[node name="Lane2" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
-layout_mode = 1
-offset_left = 0.0
-offset_top = 120.0
-offset_right = 0.0
-offset_bottom = 195.0
-anchor_right = 1.0
-color = Color(0.26, 0.42, 0.22, 1)
-
-[node name="Lane3" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
-layout_mode = 1
-offset_left = 0.0
-offset_top = 220.0
-offset_right = 0.0
-offset_bottom = 295.0
-anchor_right = 1.0
-color = Color(0.26, 0.42, 0.22, 1)
-
-[node name="Lane4" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
-layout_mode = 1
-offset_left = 0.0
-offset_top = 320.0
-offset_right = 0.0
-offset_bottom = 395.0
-anchor_right = 1.0
-color = Color(0.26, 0.42, 0.22, 1)
-
-[node name="FinishLine" type="ColorRect" parent="RootMargin/MainVBox/TrackArea"]
-layout_mode = 1
-offset_left = 1120.0
-offset_top = 0.0
-offset_right = 1130.0
-offset_bottom = 420.0
-color = Color(0.95, 0.95, 0.95, 1)
-
-[node name="HorsesLayer" type="Node2D" parent="RootMargin/MainVBox/TrackArea"]
-position = Vector2(0, 0)
 
 [node name="BottomButtons" type="HBoxContainer" parent="RootMargin/MainVBox"]
 layout_mode = 2
