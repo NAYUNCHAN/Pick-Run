@@ -5,6 +5,8 @@ const ODDS_SIM_TOTAL: int = 500
 const ODDS_SIM_BATCH: int = 25
 const START_X: float = 100.0
 const LANE_Y: Array[float] = [70.0, 190.0, 310.0, 430.0]
+const RACE_TIME_SCALE: float = 3.7
+const MAX_RACE_SECONDS: float = 26.0
 
 @onready var coin_label: Label = $RootMargin/MainVBox/TopBar/CoinLabel
 @onready var forecast_button: Button = $RootMargin/MainVBox/TopBar/ForecastButton
@@ -16,6 +18,14 @@ const LANE_Y: Array[float] = [70.0, 190.0, 310.0, 430.0]
 @onready var back_button: Button = $RootMargin/MainVBox/BottomButtons/BackButton
 @onready var report_button: Button = $RootMargin/MainVBox/BottomButtons/ReportButton
 
+@onready var horses_container: Node2D = get_node_or_null("%HorsesLayer") as Node2D
+@onready var finish_line: ColorRect = get_node_or_null("%FinishLine") as ColorRect
+@onready var result_panel: PanelContainer = get_node_or_null("ResultPanel") as PanelContainer
+@onready var result_label: Label = get_node_or_null("ResultPanel/MarginContainer/ResultVBox/ResultLabel") as Label
+@onready var rank_label: Label = get_node_or_null("ResultPanel/MarginContainer/ResultVBox/RankLabel") as Label
+@onready var settlement_label: Label = get_node_or_null("ResultPanel/MarginContainer/ResultVBox/SettlementLabel") as Label
+@onready var horse_info_popup: HorseInfoPopup = get_node_or_null("HorseInfoPopup") as HorseInfoPopup
+@onready var forecast_popup: ForecastPopup = get_node_or_null("ForecastPopup") as ForecastPopup
 @onready var horses_container: Node2D = %HorsesLayer
 @onready var finish_line: ColorRect = %FinishLine
 @onready var track_bg: ColorRect = %TrackBg
@@ -48,6 +58,7 @@ var stamina_current: Array[float] = []
 var stamina_max: Array[float] = []
 var race_distance_m: Array[float] = []
 var skill_used: Array[bool] = []
+var skill_logs: Array[String] = []
 var finish_order_indices: Array[int] = []
 
 var rng_race: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -55,14 +66,39 @@ var rng_odds: RandomNumberGenerator = RandomNumberGenerator.new()
 var odds_worker: Node = null
 
 func _ready() -> void:
+	_resolve_fallback_nodes()
 	horses_data = HorseData.get_all_horses()
 	_ensure_horse_cards_container()
 	_setup_horses()
 	_setup_ui()
+	_ensure_rank_label_exists()
+	_ensure_info_popup_exists()
+	_ensure_forecast_popup_exists()
 	_start_new_round()
-	result_panel.visible = false
+	if result_panel != null:
+		result_panel.visible = false
 	race_again_button.visible = false
 	_update_coin_label()
+
+func _resolve_fallback_nodes() -> void:
+	if horses_container == null:
+		horses_container = find_child("HorsesLayer", true, false) as Node2D
+	if finish_line == null:
+		finish_line = find_child("FinishLine", true, false) as ColorRect
+	if horse_cards_container == null:
+		horse_cards_container = find_child("HorseCards", true, false) as HBoxContainer
+	if result_panel == null:
+		result_panel = find_child("ResultPanel", true, false) as PanelContainer
+	if result_label == null:
+		result_label = find_child("ResultLabel", true, false) as Label
+	if rank_label == null:
+		rank_label = find_child("RankLabel", true, false) as Label
+	if settlement_label == null:
+		settlement_label = find_child("SettlementLabel", true, false) as Label
+	if horse_info_popup == null:
+		horse_info_popup = find_child("HorseInfoPopup", true, false) as HorseInfoPopup
+	if forecast_popup == null:
+		forecast_popup = find_child("ForecastPopup", true, false) as ForecastPopup
 
 func _process(delta: float) -> void:
 	if not is_racing:
@@ -77,6 +113,14 @@ func _process(delta: float) -> void:
 		var move_delta_m: float = _calculate_distance_delta_m(i, data, delta)
 		race_distance_m[i] = clampf(race_distance_m[i] + move_delta_m, 0.0, TRACK_DISTANCE_M)
 		stamina_current[i] = clampf(stamina_current[i] - move_delta_m, 0.0, 1800.0)
+		horse_nodes[i].race_distance_m = race_distance_m[i]
+		horse_nodes[i].position = _horse_position_for_lane(i, race_distance_m[i])
+		if race_distance_m[i] >= TRACK_DISTANCE_M and not finish_order_indices.has(i):
+			finish_order_indices.append(i)
+			print("[Race] 결승 통과: %s (%d착 확정)" % [str(data.get("name", "마필")), finish_order_indices.size()])
+
+	if race_elapsed >= MAX_RACE_SECONDS and finish_order_indices.size() < horses_data.size():
+		_finalize_unfinished_horses()
 		node.race_distance_m = race_distance_m[i]
 		node.position = _horse_position_for_lane(i, race_distance_m[i])
 		if race_distance_m[i] >= TRACK_DISTANCE_M:
@@ -110,13 +154,16 @@ func _input(event: InputEvent) -> void:
 		start_race()
 
 func _setup_horses() -> void:
+	if horses_container == null:
+		push_error("RaceController: HorsesLayer not found")
+		return
 	for child in horses_container.get_children():
 		child.queue_free()
 	horse_nodes.clear()
 
 	var horse_scene: PackedScene = preload("res://scenes/entities/Horse.tscn")
 	for i in horses_data.size():
-		var horse: Horse = horse_scene.instantiate()
+		var horse: Horse = horse_scene.instantiate() as Horse
 		horses_container.add_child(horse)
 		horse.setup(horses_data[i])
 		horse.position = _horse_position_for_lane(i, 0.0)
@@ -125,6 +172,9 @@ func _setup_horses() -> void:
 
 func _horse_position_for_lane(index: int, distance_m: float) -> Vector2:
 	var lane_index: int = clampi(index, 0, LANE_Y.size() - 1)
+	var x_end: float = 1060.0
+	if finish_line != null:
+		x_end = finish_line.position.x - 44.0
 	var x_end: float = finish_line.position.x - 44.0
 	var progress: float = clampf(distance_m / TRACK_DISTANCE_M, 0.0, 1.0)
 	var x_pos: float = lerpf(START_X, x_end, progress)
@@ -143,6 +193,14 @@ func _setup_ui() -> void:
 		horse_card_info_buttons[i].pressed.connect(_on_horse_card_info_pressed.bind(i))
 
 func _ensure_horse_cards_container() -> void:
+	if horse_cards_container == null:
+		horse_cards_container = get_node_or_null("%HorseCards") as HBoxContainer
+	if horse_cards_container == null:
+		horse_cards_container = find_child("HorseCards", true, false) as HBoxContainer
+	if horse_cards_container == null:
+		push_error("RaceController: HorseCards not found")
+		return
+
 	horse_cards_container = %HorseCards
 	for child in horse_cards_container.get_children():
 		child.queue_free()
@@ -187,6 +245,7 @@ func _ensure_horse_cards_container() -> void:
 		button_row.add_child(select_button)
 
 		var info_button: Button = Button.new()
+		info_button.text = "마필 정보"
 		info_button.text = "정보"
 		info_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button_row.add_child(info_button)
@@ -197,13 +256,29 @@ func _ensure_horse_cards_container() -> void:
 		horse_card_select_buttons.append(select_button)
 		horse_card_info_buttons.append(info_button)
 
+func _prepare_race_arrays() -> void:
+	stamina_current.clear()
+	stamina_max.clear()
+	race_distance_m.clear()
+	skill_used.clear()
+	skill_logs.clear()
+	finish_order_indices.clear()
+	for i in horses_data.size():
+		var horse: Dictionary = horses_data[i]
+		var stamina_value: float = float(horse.get("stamina_max", 1600.0))
+		stamina_value *= _condition_array_value("horse_form_stamina", i, 1.0)
+		stamina_value = clampf(stamina_value, 1600.0, 1800.0)
+		stamina_max.append(stamina_value)
+		stamina_current.append(stamina_value)
+		race_distance_m.append(0.0)
+		skill_used.append(false)
+
 func _start_new_round() -> void:
 	is_racing = false
 	race_elapsed = 0.0
 	race_seed = int(Time.get_ticks_usec()) ^ int(Time.get_unix_time_from_system()) ^ randi()
 	rng_race.seed = race_seed
 	rng_odds.seed = race_seed ^ int(0x9E3779B9)
-
 	race_conditions = _make_race_conditions(horses_data.size(), rng_race)
 	_prepare_race_arrays()
 	for i in horse_nodes.size():
@@ -215,7 +290,54 @@ func _start_new_round() -> void:
 func _make_race_conditions(count: int, rng: RandomNumberGenerator) -> Dictionary:
 	var form_speed: Array[float] = []
 	var form_stamina: Array[float] = []
+	var form_skill: Array[float] = []
 	for _i in count:
+		form_speed.append(rng.randf_range(0.96, 1.04))
+		form_stamina.append(rng.randf_range(0.95, 1.05))
+		form_skill.append(rng.randf_range(0.9, 1.1))
+	return {
+		"track_speed_bias": rng.randf_range(0.98, 1.03),
+		"track_variance_scale": rng.randf_range(0.95, 1.35),
+		"horse_form_speed": form_speed,
+		"horse_form_stamina": form_stamina,
+		"horse_form_skill": form_skill
+	}
+
+func _calculate_distance_delta_m(index: int, horse: Dictionary, delta: float) -> float:
+	var time_delta_scaled: float = delta * RACE_TIME_SCALE
+	var stamina_ratio: float = stamina_current[index] / maxf(stamina_max[index], 1.0)
+	var fatigue_multiplier: float = clampf(0.5 + stamina_ratio * 0.8, 0.5, 1.25)
+	var form_speed: float = _condition_array_value("horse_form_speed", index, 1.0)
+	var base_pace_mps: float = float(horse.get("base_pace_mps", 17.8))
+	base_pace_mps *= float(race_conditions.get("track_speed_bias", 1.0))
+	base_pace_mps *= form_speed
+
+	var consistency: float = float(horse.get("consistency", 0.6))
+	var progress_ratio: float = clampf(race_distance_m[index] / TRACK_DISTANCE_M, 0.0, 1.0)
+	var phase_bonus: float = 0.0
+	if progress_ratio < 0.25:
+		phase_bonus = rng_race.randf_range(-0.6, 0.8)
+	elif progress_ratio < 0.75:
+		phase_bonus = rng_race.randf_range(-0.7, 0.9)
+	else:
+		phase_bonus = rng_race.randf_range(-0.9, 1.2)
+
+	var variance: float = rng_race.randf_range(-1.3, 1.3) * (1.28 - consistency) * float(race_conditions.get("track_variance_scale", 1.0))
+	var delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance + phase_bonus) * time_delta_scaled, 0.0)
+
+	var skill_form: float = _condition_array_value("horse_form_skill", index, 1.0)
+	var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horse, race_distance_m[index], stamina_current[index], stamina_max[index], time_delta_scaled, skill_used[index], rng_race, skill_form)
+	if skill_bonus_m > 0.0:
+		skill_used[index] = true
+		var skill_any: Variant = horse.get("skill", {})
+		var skill: Dictionary = skill_any if skill_any is Dictionary else {}
+		var skill_name: String = str(skill.get("name", "스킬"))
+		var horse_name: String = str(horse.get("name", "마필"))
+		var log_line: String = "%s 발동: %s (+%.2fm)" % [skill_name, horse_name, skill_bonus_m]
+		skill_logs.append(log_line)
+		print("[Skill] %s" % log_line)
+	delta_m += skill_bonus_m
+
 		form_speed.append(rng.randf_range(0.97, 1.03))
 		form_stamina.append(rng.randf_range(0.98, 1.04))
 	return {
@@ -265,6 +387,18 @@ func _condition_array_value(key: String, index: int, fallback: float) -> float:
 			return float(arr[index])
 	return fallback
 
+func _finalize_unfinished_horses() -> void:
+	var remain: Array[Dictionary] = []
+	for i in horses_data.size():
+		if not finish_order_indices.has(i):
+			remain.append({"index": i, "distance": race_distance_m[i]})
+	remain.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("distance", 0.0)) > float(b.get("distance", 0.0))
+	)
+	for row in remain:
+		finish_order_indices.append(int(row.get("index", 0)))
+	print("[Race] 시간 종료 보정으로 순위 확정")
+
 func _start_odds_calculation() -> void:
 	is_odds_calculating = true
 	for i in horse_card_odds.size():
@@ -309,6 +443,48 @@ func _on_horse_card_select_pressed(index: int) -> void:
 	select_horse(index)
 
 func _on_horse_card_info_pressed(index: int) -> void:
+	print("[UI] 마필 정보 버튼 클릭 index=%d" % index)
+	if index < 0 or index >= horses_data.size():
+		return
+	if horse_info_popup == null:
+		_ensure_info_popup_exists()
+	if horse_info_popup != null:
+		horse_info_popup.show_horse_info(horses_data[index])
+		print("[UI] 마필 정보 팝업 오픈 성공")
+	else:
+		print("[UI] 마필 정보 팝업 생성 실패")
+
+func _ensure_info_popup_exists() -> void:
+	if horse_info_popup != null:
+		return
+	var popup_scene: PackedScene = preload("res://scenes/ui/HorseInfoPopup.tscn")
+	var popup: Node = popup_scene.instantiate()
+	add_child(popup)
+	horse_info_popup = popup as HorseInfoPopup
+
+func _ensure_forecast_popup_exists() -> void:
+	if forecast_popup != null:
+		return
+	var popup_scene: PackedScene = preload("res://scenes/ui/ForecastPopup.tscn")
+	var popup: Node = popup_scene.instantiate()
+	add_child(popup)
+	forecast_popup = popup as ForecastPopup
+
+func _ensure_rank_label_exists() -> void:
+	if rank_label != null:
+		return
+	if result_label == null:
+		return
+	var parent_node: Node = result_label.get_parent()
+	if parent_node == null:
+		return
+	var new_label: Label = Label.new()
+	new_label.name = "RankLabel"
+	new_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	new_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	new_label.text = "순위: 대기중"
+	parent_node.add_child(new_label)
+	rank_label = new_label
 	if index < 0 or index >= horses_data.size():
 		return
 	horse_info_popup.show_horse_info(horses_data[index])
@@ -349,7 +525,8 @@ func start_race() -> void:
 	if not GameState.can_bet(bet_amount):
 		return
 
-	result_panel.visible = false
+	if result_panel != null:
+		result_panel.visible = false
 	race_again_button.visible = false
 	is_racing = true
 	race_elapsed = 0.0
@@ -359,30 +536,67 @@ func start_race() -> void:
 		horse_nodes[i].reset_for_race(_horse_position_for_lane(i, 0.0))
 
 func finish_race(winner_idx: int) -> void:
+	if not is_racing:
+		return
 	is_racing = false
 	_set_controls_locked(false)
+
+	if finish_order_indices.size() < horses_data.size():
+		_finalize_unfinished_horses()
 
 	var result: Dictionary = GameState.apply_race_result(selected_horse_idx, winner_idx, bet_amount, GameState.TEMP_MULTIPLIER, finish_order_indices)
 	_update_coin_label()
 	update_bet_ui()
+	_update_result_panel(result)
+	print("[Race] 최종 순위: %s" % str(finish_order_indices))
 
-	result_label.text = "우승: %s / 내 선택: %s (%s)" % [
-		result["winner"],
-		result["selected"],
-		("적중" if result["hit"] else "미적중")
-	]
-	settlement_label.text = "정산: %+d 코인 | 현재 코인: %d" % [int(result["profit"]), int(result["coins_after"])]
+func _update_result_panel(result: Dictionary) -> void:
+	if result_panel == null or result_label == null or settlement_label == null:
+		return
+	var selected_name: String = str(result.get("selected", "마필"))
+	var selected_rank: int = _find_rank_by_name(selected_name)
+	var rank_lines: Array[String] = []
+	if finish_order_indices.is_empty():
+		rank_lines.append("순위 정보 없음")
+	else:
+		for i in finish_order_indices.size():
+			var idx: int = finish_order_indices[i]
+			var horse_name: String = str(horses_data[idx].get("name", "마필"))
+			rank_lines.append("%d착 %s" % [i + 1, horse_name])
+
+	var result_title: String = "내 선택: %s (%s)" % [selected_name, ("적중" if bool(result.get("hit", false)) else "미적중")]
+	if selected_rank > 0:
+		result_title += " / 내 순위: %d착" % selected_rank
+	else:
+		result_title += " / 내 순위: 확인 불가"
+	result_label.text = result_title
+	if rank_label != null:
+		rank_label.text = "\n".join(rank_lines)
+	settlement_label.text = "정산: %+d 코인 | 현재 코인: %d" % [int(result.get("profit", 0)), int(result.get("coins_after", 0))]
+	if not skill_logs.is_empty():
+		settlement_label.text += "\n스킬 로그: %s" % " | ".join(skill_logs)
 	result_panel.visible = true
 	race_again_button.visible = true
 
+func _find_rank_by_name(name: String) -> int:
+	for i in finish_order_indices.size():
+		var idx: int = finish_order_indices[i]
+		if str(horses_data[idx].get("name", "")) == name:
+			return i + 1
+	return -1
+
 func reset_for_new_race() -> void:
-	result_panel.visible = false
+	if result_panel != null:
+		result_panel.visible = false
 	race_again_button.visible = false
 	_start_new_round()
 	select_horse(0)
 
 func _set_controls_locked(locked: bool) -> void:
 	for button in horse_card_select_buttons:
+		button.disabled = locked
+	for button in horse_card_info_buttons:
+		button.disabled = locked
 		button.disabled = locked
 	for button in horse_card_info_buttons:
 		button.disabled = locked
@@ -395,6 +609,11 @@ func _update_coin_label() -> void:
 	coin_label.text = "보유 코인: %d" % GameState.coins
 
 func _on_forecast_pressed() -> void:
+	if forecast_popup == null:
+		_ensure_forecast_popup_exists()
+	if forecast_popup == null:
+		return
+
 	var ranking_rows: Array[Dictionary] = []
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = race_seed ^ int(0xABCDEF)
@@ -421,6 +640,7 @@ func _on_forecast_pressed() -> void:
 	var featured_skill_desc: String = str(featured_skill.get("description", "직선 주로에서 주목할 만합니다."))
 	var featured_lines: Array[String] = [
 		"%s는 이번 편성에서 가장 안정적인 전개가 기대됩니다." % str(featured_horse.get("name", "마필")),
+		featured_skill_desc,
 		"%s" % featured_skill_desc,
 		"지난 경주 흐름도 나쁘지 않아 다시 한 번 눈여겨볼 필요가 있습니다."
 	]
@@ -439,3 +659,75 @@ func _on_back_pressed() -> void:
 
 func _on_report_pressed() -> void:
 	print("TODO: Report 기능")
+
+func debug_run_balance_test(rounds: int = 20) -> void:
+	var local_rounds: int = max(1, rounds)
+	var win_counts: Dictionary = {}
+	for horse in horses_data:
+		win_counts[str(horse.get("name", "마필"))] = 0
+
+	var sim_rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	sim_rng.randomize()
+	for _r in local_rounds:
+		var sim_conditions: Dictionary = _make_race_conditions(horses_data.size(), sim_rng)
+		var sim_distance: Array[float] = [0.0, 0.0, 0.0, 0.0]
+		var sim_stamina: Array[float] = []
+		var sim_stamina_max: Array[float] = []
+		var sim_skill_used: Array[bool] = [false, false, false, false]
+		for i in horses_data.size():
+			var st: float = float(horses_data[i].get("stamina_max", 1600.0))
+			st *= _array_value_from_conditions(sim_conditions, "horse_form_stamina", i, 1.0)
+			st = clampf(st, 1600.0, 1800.0)
+			sim_stamina.append(st)
+			sim_stamina_max.append(st)
+		var sim_finish: Array[int] = []
+		var sim_elapsed: float = 0.0
+		while sim_finish.size() < horses_data.size() and sim_elapsed < MAX_RACE_SECONDS:
+			for i in horses_data.size():
+				if sim_finish.has(i):
+					continue
+				var horse: Dictionary = horses_data[i]
+				var dt: float = 0.1 * RACE_TIME_SCALE
+				var form_speed: float = _array_value_from_conditions(sim_conditions, "horse_form_speed", i, 1.0)
+				var pace: float = float(horse.get("base_pace_mps", 17.8)) * float(sim_conditions.get("track_speed_bias", 1.0)) * form_speed
+				var consistency: float = float(horse.get("consistency", 0.6))
+				var fatigue: float = clampf(0.5 + (sim_stamina[i] / maxf(sim_stamina_max[i], 1.0)) * 0.8, 0.5, 1.25)
+				var variance: float = sim_rng.randf_range(-1.5, 1.5) * (1.3 - consistency) * float(sim_conditions.get("track_variance_scale", 1.0))
+				var delta_m: float = maxf((pace * fatigue + variance) * dt, 0.0)
+				var skill_form: float = _array_value_from_conditions(sim_conditions, "horse_form_skill", i, 1.0)
+				var skill_bonus: float = HorseData.skill_trigger_bonus_m(horse, sim_distance[i], sim_stamina[i], sim_stamina_max[i], dt, sim_skill_used[i], sim_rng, skill_form)
+				if skill_bonus > 0.0:
+					sim_skill_used[i] = true
+				delta_m += skill_bonus
+				delta_m = minf(delta_m, TRACK_DISTANCE_M - sim_distance[i])
+				sim_distance[i] += delta_m
+				sim_stamina[i] = clampf(sim_stamina[i] - delta_m, 0.0, 1800.0)
+				if sim_distance[i] >= TRACK_DISTANCE_M:
+					sim_finish.append(i)
+			sim_elapsed += 0.1
+		if sim_finish.size() < horses_data.size():
+			var remain: Array[Dictionary] = []
+			for i in horses_data.size():
+				if not sim_finish.has(i):
+					remain.append({"index": i, "distance": sim_distance[i]})
+			remain.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+				return float(a.get("distance", 0.0)) > float(b.get("distance", 0.0))
+			)
+			for row in remain:
+				sim_finish.append(int(row.get("index", 0)))
+		var win_name: String = str(horses_data[sim_finish[0]].get("name", "마필"))
+		win_counts[win_name] = int(win_counts.get(win_name, 0)) + 1
+
+	var lines: Array[String] = []
+	for horse in horses_data:
+		var name: String = str(horse.get("name", "마필"))
+		lines.append("%s %d승" % [name, int(win_counts.get(name, 0))])
+	print("[BalanceTest %d판] %s" % [local_rounds, " / ".join(lines)])
+
+func _array_value_from_conditions(conditions: Dictionary, key: String, index: int, fallback: float) -> float:
+	var arr_any: Variant = conditions.get(key, [])
+	if arr_any is Array:
+		var arr: Array = arr_any
+		if index >= 0 and index < arr.size():
+			return float(arr[index])
+	return fallback

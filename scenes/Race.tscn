@@ -167,10 +167,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -100.0
-offset_right = 260.0
-offset_bottom = 100.0
+offset_left = -300.0
+offset_top = -150.0
+offset_right = 300.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -189,11 +189,19 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "우승: -"
 horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="RankLabel" type="Label" parent="ResultPanel/MarginContainer/ResultVBox"]
+layout_mode = 2
+text = "1착 -\n2착 -\n3착 -\n4착 -"
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="SettlementLabel" type="Label" parent="ResultPanel/MarginContainer/ResultVBox"]
 layout_mode = 2
 text = "정산: 0"
 horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="HorseInfoPopup" parent="." instance=ExtResource("2_info")]
 

@@ -4,6 +4,7 @@ signal progress_changed(ratio: float)
 signal completed(prob: Array[float], mult: Array[float])
 
 const TRACK_DISTANCE_M: float = 1600.0
+const RACE_TIME_SCALE: float = 3.7
 
 func start(horses: Array[Dictionary], conditions: Dictionary, seed: int, total_sims: int = 500, batch: int = 25) -> void:
 	var horse_count: int = horses.size()
@@ -55,8 +56,10 @@ func _simulate_one_race(horses: Array[Dictionary], conditions: Dictionary, rng: 
 
 	var form_stamina_any: Variant = conditions.get("horse_form_stamina", [])
 	var form_speed_any: Variant = conditions.get("horse_form_speed", [])
+	var form_skill_any: Variant = conditions.get("horse_form_skill", [])
 	var form_stamina: Array = form_stamina_any if form_stamina_any is Array else []
 	var form_speed: Array = form_speed_any if form_speed_any is Array else []
+	var form_skill: Array = form_skill_any if form_skill_any is Array else []
 
 	for i in count:
 		race_distance_m[i] = 0.0
@@ -67,6 +70,19 @@ func _simulate_one_race(horses: Array[Dictionary], conditions: Dictionary, rng: 
 
 	var dt: float = 0.1
 	var elapsed: float = 0.0
+	while elapsed < 30.0:
+		for i in count:
+			if race_distance_m[i] >= TRACK_DISTANCE_M:
+				continue
+			var time_delta_scaled: float = dt * RACE_TIME_SCALE
+			var fatigue_multiplier: float = clampf(0.5 + (stamina_current[i] / maxf(stamina_max[i], 1.0)) * 0.8, 0.5, 1.25)
+			var base_pace_mps: float = float(horses[i].get("base_pace_mps", 17.8)) * _array_value(form_speed, i, 1.0)
+			base_pace_mps *= float(conditions.get("track_speed_bias", 1.0))
+			var consistency: float = float(horses[i].get("consistency", 0.6))
+			var variance: float = rng.randf_range(-1.5, 1.5) * (1.3 - consistency) * float(conditions.get("track_variance_scale", 1.0))
+			var move_delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance) * time_delta_scaled, 0.0)
+
+			var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], time_delta_scaled, skill_used[i], rng, _array_value(form_skill, i, 1.0))
 	while elapsed < 160.0:
 		for i in count:
 			if race_distance_m[i] >= TRACK_DISTANCE_M:
