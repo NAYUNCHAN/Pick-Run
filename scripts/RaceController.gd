@@ -26,6 +26,14 @@ const MAX_RACE_SECONDS: float = 26.0
 @onready var settlement_label: Label = get_node_or_null("ResultPanel/MarginContainer/ResultVBox/SettlementLabel") as Label
 @onready var horse_info_popup: HorseInfoPopup = get_node_or_null("HorseInfoPopup") as HorseInfoPopup
 @onready var forecast_popup: ForecastPopup = get_node_or_null("ForecastPopup") as ForecastPopup
+@onready var horses_container: Node2D = %HorsesLayer
+@onready var finish_line: ColorRect = %FinishLine
+@onready var track_bg: ColorRect = %TrackBg
+@onready var result_panel: PanelContainer = $ResultPanel
+@onready var result_label: Label = $ResultPanel/MarginContainer/ResultVBox/ResultLabel
+@onready var settlement_label: Label = $ResultPanel/MarginContainer/ResultVBox/SettlementLabel
+@onready var horse_info_popup: HorseInfoPopup = $HorseInfoPopup
+@onready var forecast_popup: ForecastPopup = $ForecastPopup
 
 var horse_cards_container: HBoxContainer = null
 var horse_card_names: Array[Label] = []
@@ -100,6 +108,7 @@ func _process(delta: float) -> void:
 	for i in horse_nodes.size():
 		if finish_order_indices.has(i):
 			continue
+		var node: Horse = horse_nodes[i]
 		var data: Dictionary = horses_data[i]
 		var move_delta_m: float = _calculate_distance_delta_m(i, data, delta)
 		race_distance_m[i] = clampf(race_distance_m[i] + move_delta_m, 0.0, TRACK_DISTANCE_M)
@@ -112,6 +121,10 @@ func _process(delta: float) -> void:
 
 	if race_elapsed >= MAX_RACE_SECONDS and finish_order_indices.size() < horses_data.size():
 		_finalize_unfinished_horses()
+		node.race_distance_m = race_distance_m[i]
+		node.position = _horse_position_for_lane(i, race_distance_m[i])
+		if race_distance_m[i] >= TRACK_DISTANCE_M:
+			finish_order_indices.append(i)
 
 	if finish_order_indices.size() >= horses_data.size():
 		finish_race(finish_order_indices[0])
@@ -162,6 +175,7 @@ func _horse_position_for_lane(index: int, distance_m: float) -> Vector2:
 	var x_end: float = 1060.0
 	if finish_line != null:
 		x_end = finish_line.position.x - 44.0
+	var x_end: float = finish_line.position.x - 44.0
 	var progress: float = clampf(distance_m / TRACK_DISTANCE_M, 0.0, 1.0)
 	var x_pos: float = lerpf(START_X, x_end, progress)
 	return Vector2(x_pos, LANE_Y[lane_index])
@@ -187,6 +201,7 @@ func _ensure_horse_cards_container() -> void:
 		push_error("RaceController: HorseCards not found")
 		return
 
+	horse_cards_container = %HorseCards
 	for child in horse_cards_container.get_children():
 		child.queue_free()
 	horse_card_names.clear()
@@ -231,6 +246,7 @@ func _ensure_horse_cards_container() -> void:
 
 		var info_button: Button = Button.new()
 		info_button.text = "마필 정보"
+		info_button.text = "정보"
 		info_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button_row.add_child(info_button)
 
@@ -322,6 +338,45 @@ func _calculate_distance_delta_m(index: int, horse: Dictionary, delta: float) ->
 		print("[Skill] %s" % log_line)
 	delta_m += skill_bonus_m
 
+		form_speed.append(rng.randf_range(0.97, 1.03))
+		form_stamina.append(rng.randf_range(0.98, 1.04))
+	return {
+		"track_speed_bias": rng.randf_range(0.98, 1.02),
+		"track_variance_scale": rng.randf_range(0.9, 1.15),
+		"horse_form_speed": form_speed,
+		"horse_form_stamina": form_stamina
+	}
+
+func _prepare_race_arrays() -> void:
+	stamina_current.clear()
+	stamina_max.clear()
+	race_distance_m.clear()
+	skill_used.clear()
+	finish_order_indices.clear()
+	for i in horses_data.size():
+		var horse: Dictionary = horses_data[i]
+		var stamina_value: float = float(horse.get("stamina_max", 1600.0))
+		stamina_value *= _condition_array_value("horse_form_stamina", i, 1.0)
+		stamina_value = clampf(stamina_value, 1600.0, 1800.0)
+		stamina_max.append(stamina_value)
+		stamina_current.append(stamina_value)
+		race_distance_m.append(0.0)
+		skill_used.append(false)
+
+func _calculate_distance_delta_m(index: int, horse: Dictionary, delta: float) -> float:
+	var fatigue_multiplier: float = clampf(0.35 + (stamina_current[index] / maxf(stamina_max[index], 1.0)) * 0.85, 0.35, 1.2)
+	var form_speed: float = _condition_array_value("horse_form_speed", index, 1.0)
+	var base_pace_mps: float = float(horse.get("base_pace_mps", 16.0))
+	base_pace_mps *= float(race_conditions.get("track_speed_bias", 1.0))
+	base_pace_mps *= form_speed
+	var consistency: float = float(horse.get("consistency", 0.6))
+	var variance: float = rng_race.randf_range(-0.9, 0.9) * (1.2 - consistency) * float(race_conditions.get("track_variance_scale", 1.0))
+	var delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance) * delta, 0.0)
+
+	var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horse, race_distance_m[index], stamina_current[index], stamina_max[index], delta, skill_used[index], rng_race)
+	if skill_bonus_m > 0.0:
+		skill_used[index] = true
+	delta_m += skill_bonus_m
 	return minf(delta_m, TRACK_DISTANCE_M - race_distance_m[index])
 
 func _condition_array_value(key: String, index: int, fallback: float) -> float:
@@ -430,6 +485,9 @@ func _ensure_rank_label_exists() -> void:
 	new_label.text = "순위: 대기중"
 	parent_node.add_child(new_label)
 	rank_label = new_label
+	if index < 0 or index >= horses_data.size():
+		return
+	horse_info_popup.show_horse_info(horses_data[index])
 
 func select_horse(index: int) -> void:
 	if is_racing:
@@ -539,6 +597,9 @@ func _set_controls_locked(locked: bool) -> void:
 		button.disabled = locked
 	for button in horse_card_info_buttons:
 		button.disabled = locked
+		button.disabled = locked
+	for button in horse_card_info_buttons:
+		button.disabled = locked
 	forecast_button.disabled = locked
 	minus_button.disabled = locked
 	plus_button.disabled = locked
@@ -580,6 +641,7 @@ func _on_forecast_pressed() -> void:
 	var featured_lines: Array[String] = [
 		"%s는 이번 편성에서 가장 안정적인 전개가 기대됩니다." % str(featured_horse.get("name", "마필")),
 		featured_skill_desc,
+		"%s" % featured_skill_desc,
 		"지난 경주 흐름도 나쁘지 않아 다시 한 번 눈여겨볼 필요가 있습니다."
 	]
 

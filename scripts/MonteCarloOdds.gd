@@ -83,6 +83,19 @@ func _simulate_one_race(horses: Array[Dictionary], conditions: Dictionary, rng: 
 			var move_delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance) * time_delta_scaled, 0.0)
 
 			var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], time_delta_scaled, skill_used[i], rng, _array_value(form_skill, i, 1.0))
+	while elapsed < 160.0:
+		for i in count:
+			if race_distance_m[i] >= TRACK_DISTANCE_M:
+				continue
+			var progress_ratio: float = clampf(race_distance_m[i] / TRACK_DISTANCE_M, 0.0, 1.0)
+			var fatigue_multiplier: float = clampf(0.35 + (stamina_current[i] / maxf(stamina_max[i], 1.0)) * 0.85, 0.35, 1.2)
+			var base_pace_mps: float = float(horses[i].get("base_pace_mps", 16.0)) * _array_value(form_speed, i, 1.0)
+			base_pace_mps *= float(conditions.get("track_speed_bias", 1.0))
+			var consistency: float = float(horses[i].get("consistency", 0.6))
+			var variance: float = rng.randf_range(-0.9, 0.9) * (1.2 - consistency) * float(conditions.get("track_variance_scale", 1.0))
+			var move_delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance) * dt, 0.0)
+
+			var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], dt, skill_used[i], rng)
 			if skill_bonus_m > 0.0:
 				skill_used[i] = true
 			move_delta_m += skill_bonus_m

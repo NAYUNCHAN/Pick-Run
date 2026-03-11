@@ -14,6 +14,10 @@ const HORSES: Array[Dictionary] = [
 		"stamina_max": 1670.0,
 		"consistency": 0.58,
 		"finishing": 0.56,
+		"base_pace_mps": 16.4,
+		"stamina_max": 1680.0,
+		"consistency": 0.62,
+		"finishing": 0.55,
 		"color": Color(0.95, 0.2, 0.2, 1.0),
 		"skill": {
 			"name": "선행 돌파",
@@ -29,6 +33,10 @@ const HORSES: Array[Dictionary] = [
 		"stamina_max": 1750.0,
 		"consistency": 0.72,
 		"finishing": 0.60,
+		"base_pace_mps": 16.2,
+		"stamina_max": 1740.0,
+		"consistency": 0.7,
+		"finishing": 0.58,
 		"color": Color(0.2, 0.45, 0.95, 1.0),
 		"skill": {
 			"name": "전개 이점",
@@ -44,6 +52,10 @@ const HORSES: Array[Dictionary] = [
 		"stamina_max": 1660.0,
 		"consistency": 0.5,
 		"finishing": 0.80,
+		"base_pace_mps": 16.1,
+		"stamina_max": 1660.0,
+		"consistency": 0.52,
+		"finishing": 0.78,
 		"color": Color(0.95, 0.85, 0.2, 1.0),
 		"skill": {
 			"name": "막판 추입",
@@ -59,6 +71,10 @@ const HORSES: Array[Dictionary] = [
 		"stamina_max": 1780.0,
 		"consistency": 0.64,
 		"finishing": 0.67,
+		"base_pace_mps": 16.0,
+		"stamina_max": 1780.0,
+		"consistency": 0.64,
+		"finishing": 0.65,
 		"color": Color(0.08, 0.08, 0.08, 1.0),
 		"skill": {
 			"name": "근성 발휘",
@@ -77,6 +93,7 @@ static func get_horse(index: int) -> Dictionary:
 	return HORSES[index].duplicate(true)
 
 static func skill_trigger_bonus_m(horse: Dictionary, race_distance_m: float, stamina_current: float, stamina_max: float, delta: float, skill_used: bool, rng: RandomNumberGenerator, skill_form_multiplier: float = 1.0) -> float:
+static func skill_trigger_bonus_m(horse: Dictionary, race_distance_m: float, stamina_current: float, stamina_max: float, delta: float, skill_used: bool, rng: RandomNumberGenerator) -> float:
 	if skill_used:
 		return 0.0
 	var number: int = int(horse.get("number", 0))
@@ -100,6 +117,22 @@ static func skill_trigger_bonus_m(horse: Dictionary, race_distance_m: float, sta
 
 	var adjusted_chance: float = chance_per_second * clampf(skill_form_multiplier, 0.9, 1.1)
 	if rng.randf() <= adjusted_chance * delta:
+		if race_distance_m >= 0.0 and race_distance_m <= 400.0:
+			chance_per_second = 0.13
+	elif number == 2:
+		if race_distance_m >= 500.0 and race_distance_m <= 1100.0:
+			chance_per_second = 0.11
+	elif number == 3:
+		if race_distance_m >= 1200.0:
+			chance_per_second = 0.16
+	elif number == 4:
+		var ratio: float = stamina_current / maxf(stamina_max, 1.0)
+		if ratio <= 0.34:
+			chance_per_second = 0.19
+
+	if chance_per_second <= 0.0:
+		return 0.0
+	if rng.randf() <= chance_per_second * delta:
 		return rng.randf_range(SKILL_BONUS_MIN_M, SKILL_BONUS_MAX_M)
 	return 0.0
 
@@ -112,6 +145,13 @@ static func get_ability_summary(horse: Dictionary) -> Array[String]:
 	if base_pace_mps >= 18.0:
 		lines.append("스피드가 대단합니다.")
 	elif base_pace_mps >= 17.85:
+	var base_pace_mps: float = float(horse.get("base_pace_mps", 16.0))
+	var stamina_max: float = float(horse.get("stamina_max", 1600.0))
+	var consistency: float = float(horse.get("consistency", 0.5))
+
+	if base_pace_mps >= 16.35:
+		lines.append("스피드가 대단합니다.")
+	elif base_pace_mps >= 16.1:
 		lines.append("초반 탄력이 제법 좋습니다.")
 	else:
 		lines.append("전개가 풀리면 무시하기 어렵습니다.")
@@ -119,6 +159,9 @@ static func get_ability_summary(horse: Dictionary) -> Array[String]:
 	if stamina_max >= 1760.0:
 		lines.append("오래 버티는 힘이 괜찮습니다.")
 	elif stamina_max >= 1690.0:
+	if stamina_max >= 1750.0:
+		lines.append("오래 버티는 힘이 괜찮습니다.")
+	elif stamina_max >= 1680.0:
 		lines.append("스태미나는 평균 이상으로 평가됩니다.")
 	else:
 		lines.append("스태미나가 부족한 편입니다.")
@@ -135,6 +178,8 @@ static func get_ability_summary(horse: Dictionary) -> Array[String]:
 static func get_forecast_score(horse: Dictionary, recent_form_factor: float, rng: RandomNumberGenerator) -> float:
 	var pace_score: float = float(horse.get("base_pace_mps", 17.8)) * 20.0
 	var stamina_score: float = (float(horse.get("stamina_max", 1600.0)) - 1600.0) * 0.55
+	var pace_score: float = float(horse.get("base_pace_mps", 16.0)) * 22.0
+	var stamina_score: float = (float(horse.get("stamina_max", 1600.0)) - 1600.0) * 0.65
 	var consistency: float = float(horse.get("consistency", 0.5))
 	var finishing: float = float(horse.get("finishing", 0.5))
 	var skill_score: float = 0.0
@@ -152,3 +197,13 @@ static func get_forecast_score(horse: Dictionary, recent_form_factor: float, rng
 
 	var variance: float = rng.randf_range(-6.0, 6.0) * (1.25 - consistency)
 	return pace_score + stamina_score + skill_score + finishing * 10.0 + recent_form_factor * 6.5 + variance
+		skill_score = 7.0
+	elif trigger == "middle":
+		skill_score = 8.0
+	elif trigger == "late":
+		skill_score = 8.5
+	elif trigger == "guts":
+		skill_score = 7.8
+
+	var variance: float = rng.randf_range(-4.0, 4.0) * (1.2 - consistency)
+	return pace_score + stamina_score + skill_score + finishing * 10.0 + recent_form_factor * 6.0 + variance
