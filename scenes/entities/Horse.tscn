@@ -1,26 +1,39 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/Horse.gd" id="1_8ft6y"]
+[ext_resource type="Script" path="res://scripts/Horse.gd" id="1_horse"]
 
 [node name="Horse" type="Node2D"]
-script = ExtResource("1_8ft6y")
+script = ExtResource("1_horse")
 
-[node name="Sprite" type="Sprite2D" parent="."]
+[node name="Outline" type="ColorRect" parent="."]
 visible = false
-centered = true
-scale = Vector2(0.5, 0.5)
-
-[node name="Body" type="ColorRect" parent="."]
-offset_left = -20.0
-offset_top = -12.0
-offset_right = 20.0
-offset_bottom = 12.0
+offset_left = -2.0
+offset_top = -2.0
+offset_right = 42.0
+offset_bottom = 42.0
 color = Color(1, 1, 1, 1)
 
+[node name="Body" type="ColorRect" parent="."]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(1, 1, 1, 1)
+
+[node name="NumberLabel" type="Label" parent="."]
+offset_left = 12.0
+offset_top = 7.0
+offset_right = 28.0
+offset_bottom = 28.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "1"
+theme_override_font_sizes/font_size = 22
+
 [node name="NameLabel" type="Label" parent="."]
-offset_left = -34.0
-offset_top = -36.0
-offset_right = 88.0
-offset_bottom = -16.0
-text = "말"
+offset_left = 46.0
+offset_top = 7.0
+offset_right = 210.0
+offset_bottom = 32.0
+text = "마필"
 theme_override_font_sizes/font_size = 16

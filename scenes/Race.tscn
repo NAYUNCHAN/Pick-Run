@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://scripts/RaceController.gd" id="1_7l0m4"]
+[ext_resource type="Script" path="res://scripts/RaceController.gd" id="1_race"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HorseInfoPopup.tscn" id="2_info"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ForecastPopup.tscn" id="3_forecast"]
 
 [node name="Race" type="Control"]
 layout_mode = 3
@@ -9,32 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_7l0m4")
-
-[node name="TrackArea" type="Node2D" parent="."]
-position = Vector2(24, 266)
-z_index = 2
-
-[node name="TrackBg" type="ColorRect" parent="TrackArea"]
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 1200.0
-offset_bottom = 420.0
-color = Color(0.2, 0.32, 0.18, 1)
-z_index = -1
-
-[node name="HorsesLayer" type="Node2D" parent="TrackArea"]
-unique_name_in_owner = true
-position = Vector2(0, 0)
-
-[node name="FinishLine" type="ColorRect" parent="TrackArea"]
-unique_name_in_owner = true
-offset_left = 1120.0
-offset_top = 0.0
-offset_right = 1130.0
-offset_bottom = 420.0
-color = Color(0.95, 0.95, 0.95, 1)
-
+script = ExtResource("1_race")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
@@ -46,7 +23,7 @@ grow_vertical = 2
 color = Color(0.08, 0.1, 0.12, 1)
 
 [node name="TrackArea" type="Node2D" parent="."]
-position = Vector2(24, 266)
+position = Vector2(24, 206)
 z_index = 2
 
 [node name="TrackBg" type="ColorRect" parent="TrackArea"]
@@ -54,15 +31,37 @@ unique_name_in_owner = true
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 1200.0
-offset_bottom = 420.0
-color = Color(0.2, 0.32, 0.18, 1)
+offset_bottom = 500.0
+color = Color(0.14, 0.25, 0.16, 1)
 z_index = -1
 
-[node name="TrackBgSprite" type="Sprite2D" parent="TrackArea"]
-unique_name_in_owner = true
-visible = false
-centered = false
-z_index = -1
+[node name="Lane0" type="ColorRect" parent="TrackArea"]
+offset_left = 0.0
+offset_top = 50.0
+offset_right = 1200.0
+offset_bottom = 52.0
+color = Color(0.78, 0.84, 0.78, 1)
+
+[node name="Lane1" type="ColorRect" parent="TrackArea"]
+offset_left = 0.0
+offset_top = 170.0
+offset_right = 1200.0
+offset_bottom = 172.0
+color = Color(0.78, 0.84, 0.78, 1)
+
+[node name="Lane2" type="ColorRect" parent="TrackArea"]
+offset_left = 0.0
+offset_top = 290.0
+offset_right = 1200.0
+offset_bottom = 292.0
+color = Color(0.78, 0.84, 0.78, 1)
+
+[node name="Lane3" type="ColorRect" parent="TrackArea"]
+offset_left = 0.0
+offset_top = 410.0
+offset_right = 1200.0
+offset_bottom = 412.0
+color = Color(0.78, 0.84, 0.78, 1)
 
 [node name="HorsesLayer" type="Node2D" parent="TrackArea"]
 unique_name_in_owner = true
@@ -73,7 +72,7 @@ unique_name_in_owner = true
 offset_left = 1120.0
 offset_top = 0.0
 offset_right = 1130.0
-offset_bottom = 420.0
+offset_bottom = 500.0
 color = Color(0.95, 0.95, 0.95, 1)
 
 [node name="RootMargin" type="MarginContainer" parent="."]
@@ -97,8 +96,14 @@ layout_mode = 2
 
 [node name="CoinLabel" type="Label" parent="RootMargin/MainVBox/TopBar"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "보유 코인: 0"
 theme_override_font_sizes/font_size = 24
+
+[node name="ForecastButton" type="Button" parent="RootMargin/MainVBox/TopBar"]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = "예상지"
 
 [node name="HorseCards" type="HBoxContainer" parent="RootMargin/MainVBox"]
 unique_name_in_owner = true
@@ -128,10 +133,10 @@ text = "+50"
 [node name="ConfirmBetButton" type="Button" parent="RootMargin/MainVBox/BetPanel"]
 custom_minimum_size = Vector2(180, 50)
 layout_mode = 2
-text = "Confirm Bet"
+text = "경주 시작"
 
 [node name="TrackAreaUI" type="Control" parent="RootMargin/MainVBox"]
-custom_minimum_size = Vector2(0, 420)
+custom_minimum_size = Vector2(0, 500)
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -142,17 +147,17 @@ theme_override_constants/separation = 10
 [node name="RaceAgainButton" type="Button" parent="RootMargin/MainVBox/BottomButtons"]
 custom_minimum_size = Vector2(180, 56)
 layout_mode = 2
-text = "Race Again"
+text = "다시 경주"
 
 [node name="BackButton" type="Button" parent="RootMargin/MainVBox/BottomButtons"]
 custom_minimum_size = Vector2(180, 56)
 layout_mode = 2
-text = "Back to Menu"
+text = "메인으로"
 
 [node name="ReportButton" type="Button" parent="RootMargin/MainVBox/BottomButtons"]
 custom_minimum_size = Vector2(180, 56)
 layout_mode = 2
-text = "Report (TODO)"
+text = "리포트 (준비중)"
 
 [node name="ResultPanel" type="PanelContainer" parent="."]
 visible = false
@@ -162,10 +167,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -100.0
-offset_right = 260.0
-offset_bottom = 100.0
+offset_left = -300.0
+offset_top = -150.0
+offset_right = 300.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -184,8 +189,20 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "우승: -"
 horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="RankLabel" type="Label" parent="ResultPanel/MarginContainer/ResultVBox"]
+layout_mode = 2
+text = "1착 -\n2착 -\n3착 -\n4착 -"
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="SettlementLabel" type="Label" parent="ResultPanel/MarginContainer/ResultVBox"]
 layout_mode = 2
 text = "정산: 0"
 horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HorseInfoPopup" parent="." instance=ExtResource("2_info")]
+
+[node name="ForecastPopup" parent="." instance=ExtResource("3_forecast")]

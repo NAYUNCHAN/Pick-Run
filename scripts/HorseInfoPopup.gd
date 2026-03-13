@@ -1,0 +1,27 @@
+extends PanelContainer
+class_name HorseInfoPopup
+
+@onready var title_label: Label = $MarginContainer/VBox/TitleLabel
+@onready var ability_label: Label = $MarginContainer/VBox/AbilityLabel
+@onready var skill_name_label: Label = $MarginContainer/VBox/SkillNameLabel
+@onready var skill_desc_label: Label = $MarginContainer/VBox/SkillDescLabel
+@onready var close_button: Button = $MarginContainer/VBox/CloseButton
+
+func _ready() -> void:
+	close_button.pressed.connect(_on_close_pressed)
+	visible = false
+
+func show_horse_info(horse: Dictionary) -> void:
+	title_label.text = "%d번 %s 마필 정보" % [int(horse.get("number", 0)), str(horse.get("name", "마필"))]
+	var hint: Dictionary = HorseData.get_stat_hint(horse)
+	ability_label.text = "능력 평가\n- %s\n- %s\n- %s" % [
+		str(hint.get("speed_text", "정보 없음")),
+		str(hint.get("stamina_text", "정보 없음")),
+		str(hint.get("consistency_text", "정보 없음"))
+	]
+	skill_name_label.text = "고유 스킬: %s" % str(horse.get("skill_name", "-"))
+	skill_desc_label.text = str(horse.get("skill_desc", "설명이 없습니다."))
+	visible = true
+
+func _on_close_pressed() -> void:
+	visible = false
