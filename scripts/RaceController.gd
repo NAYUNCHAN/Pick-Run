@@ -265,6 +265,7 @@ func _prepare_race_arrays() -> void:
 	finish_order_indices.clear()
 	for i in horses_data.size():
 		var horse: Dictionary = horses_data[i]
+		var stamina_value: float = float(horse.get("stamina", 1600.0))
 		var stamina_value: float = float(horse.get("stamina_max", 1600.0))
 		stamina_value *= _condition_array_value("horse_form_stamina", i, 1.0)
 		stamina_value = clampf(stamina_value, 1600.0, 1800.0)
@@ -308,6 +309,12 @@ func _calculate_distance_delta_m(index: int, horse: Dictionary, delta: float) ->
 	var stamina_ratio: float = stamina_current[index] / maxf(stamina_max[index], 1.0)
 	var fatigue_multiplier: float = clampf(0.5 + stamina_ratio * 0.8, 0.5, 1.25)
 	var form_speed: float = _condition_array_value("horse_form_speed", index, 1.0)
+	var base_pace_mps: float = float(horse.get("base_speed", 17.8))
+	base_pace_mps *= float(race_conditions.get("track_speed_bias", 1.0))
+	base_pace_mps *= form_speed
+
+	var luck_value: float = float(int(horse.get("luck", 58)))
+	var consistency: float = clampf(0.45 + (luck_value / 100.0) * 0.7, 0.45, 0.9)
 	var base_pace_mps: float = float(horse.get("base_pace_mps", 17.8))
 	base_pace_mps *= float(race_conditions.get("track_speed_bias", 1.0))
 	base_pace_mps *= form_speed
@@ -329,6 +336,7 @@ func _calculate_distance_delta_m(index: int, horse: Dictionary, delta: float) ->
 	var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horse, race_distance_m[index], stamina_current[index], stamina_max[index], time_delta_scaled, skill_used[index], rng_race, skill_form)
 	if skill_bonus_m > 0.0:
 		skill_used[index] = true
+		var skill_name: String = str(horse.get("skill_name", "스킬"))
 		var skill_any: Variant = horse.get("skill", {})
 		var skill: Dictionary = skill_any if skill_any is Dictionary else {}
 		var skill_name: String = str(skill.get("name", "스킬"))
@@ -635,6 +643,10 @@ func _on_forecast_pressed() -> void:
 
 	var featured_index: int = int(ranking_rows[0].get("index", 0))
 	var featured_horse: Dictionary = horses_data[featured_index]
+	var featured_skill_desc: String = str(featured_horse.get("skill_desc", "직선 주로에서 주목할 만합니다."))
+	var featured_lines: Array[String] = [
+		"%s는 이번 편성에서 가장 안정적인 전개가 기대됩니다." % str(featured_horse.get("name", "마필")),
+		featured_skill_desc,
 	var featured_skill_any: Variant = featured_horse.get("skill", {})
 	var featured_skill: Dictionary = featured_skill_any if featured_skill_any is Dictionary else {}
 	var featured_skill_desc: String = str(featured_skill.get("description", "직선 주로에서 주목할 만합니다."))
@@ -675,6 +687,7 @@ func debug_run_balance_test(rounds: int = 20) -> void:
 		var sim_stamina_max: Array[float] = []
 		var sim_skill_used: Array[bool] = [false, false, false, false]
 		for i in horses_data.size():
+			var st: float = float(horses_data[i].get("stamina", 1600.0))
 			var st: float = float(horses_data[i].get("stamina_max", 1600.0))
 			st *= _array_value_from_conditions(sim_conditions, "horse_form_stamina", i, 1.0)
 			st = clampf(st, 1600.0, 1800.0)
@@ -689,6 +702,9 @@ func debug_run_balance_test(rounds: int = 20) -> void:
 				var horse: Dictionary = horses_data[i]
 				var dt: float = 0.1 * RACE_TIME_SCALE
 				var form_speed: float = _array_value_from_conditions(sim_conditions, "horse_form_speed", i, 1.0)
+				var pace: float = float(horse.get("base_speed", 17.8)) * float(sim_conditions.get("track_speed_bias", 1.0)) * form_speed
+				var luck_value: float = float(int(horse.get("luck", 58)))
+				var consistency: float = clampf(0.45 + (luck_value / 100.0) * 0.7, 0.45, 0.9)
 				var pace: float = float(horse.get("base_pace_mps", 17.8)) * float(sim_conditions.get("track_speed_bias", 1.0)) * form_speed
 				var consistency: float = float(horse.get("consistency", 0.6))
 				var fatigue: float = clampf(0.5 + (sim_stamina[i] / maxf(sim_stamina_max[i], 1.0)) * 0.8, 0.5, 1.25)
