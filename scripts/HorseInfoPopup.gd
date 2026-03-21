@@ -1,5 +1,6 @@
 extends PanelContainer
 class_name HorseInfoPopup
+const HorseDataRef = preload("res://scripts/HorseData.gd")
 
 @onready var title_label: Label = $MarginContainer/VBox/TitleLabel
 @onready var ability_label: Label = $MarginContainer/VBox/AbilityLabel
@@ -13,7 +14,7 @@ func _ready() -> void:
 
 func show_horse_info(horse: Dictionary) -> void:
 	title_label.text = "%d번 %s 마필 정보" % [int(horse.get("number", 0)), str(horse.get("name", "마필"))]
-	var hint: Dictionary = HorseData.get_stat_hint(horse)
+	var hint: Dictionary = HorseDataRef.get_stat_hint(horse)
 	ability_label.text = "능력 평가\n- %s\n- %s\n- %s" % [
 		str(hint.get("speed_text", "정보 없음")),
 		str(hint.get("stamina_text", "정보 없음")),
@@ -21,7 +22,7 @@ func show_horse_info(horse: Dictionary) -> void:
 	]
 	skill_name_label.text = "고유 스킬: %s" % str(horse.get("skill_name", "-"))
 	skill_desc_label.text = str(horse.get("skill_desc", "설명이 없습니다."))
-	var ability_lines: Array[String] = HorseData.get_ability_summary(horse)
+	var ability_lines: Array[String] = HorseDataRef.get_ability_summary(horse)
 	ability_label.text = "능력 평가\n- %s" % "\n- ".join(ability_lines)
 	var skill_any: Variant = horse.get("skill", {})
 	var skill: Dictionary = skill_any if skill_any is Dictionary else {}

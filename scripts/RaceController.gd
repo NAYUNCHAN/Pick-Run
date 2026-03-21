@@ -1,4 +1,5 @@
 extends Control
+const HorseDataRef = preload("res://scripts/HorseData.gd")
 
 const TRACK_DISTANCE_M: float = 1600.0
 const ODDS_SIM_TOTAL: int = 500
@@ -67,7 +68,7 @@ var odds_worker: Node = null
 
 func _ready() -> void:
 	_resolve_fallback_nodes()
-	horses_data = HorseData.get_all_horses()
+	horses_data = HorseDataRef.get_all_horses()
 	_ensure_horse_cards_container()
 	_setup_horses()
 	_setup_ui()
@@ -333,7 +334,7 @@ func _calculate_distance_delta_m(index: int, horse: Dictionary, delta: float) ->
 	var delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance + phase_bonus) * time_delta_scaled, 0.0)
 
 	var skill_form: float = _condition_array_value("horse_form_skill", index, 1.0)
-	var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horse, race_distance_m[index], stamina_current[index], stamina_max[index], time_delta_scaled, skill_used[index], rng_race, skill_form)
+	var skill_bonus_m: float = HorseDataRef.skill_trigger_bonus_m(horse, race_distance_m[index], stamina_current[index], stamina_max[index], time_delta_scaled, skill_used[index], rng_race, skill_form)
 	if skill_bonus_m > 0.0:
 		skill_used[index] = true
 		var skill_name: String = str(horse.get("skill_name", "스킬"))
@@ -381,7 +382,7 @@ func _calculate_distance_delta_m(index: int, horse: Dictionary, delta: float) ->
 	var variance: float = rng_race.randf_range(-0.9, 0.9) * (1.2 - consistency) * float(race_conditions.get("track_variance_scale", 1.0))
 	var delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance) * delta, 0.0)
 
-	var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horse, race_distance_m[index], stamina_current[index], stamina_max[index], delta, skill_used[index], rng_race)
+	var skill_bonus_m: float = HorseDataRef.skill_trigger_bonus_m(horse, race_distance_m[index], stamina_current[index], stamina_max[index], delta, skill_used[index], rng_race)
 	if skill_bonus_m > 0.0:
 		skill_used[index] = true
 	delta_m += skill_bonus_m
@@ -629,7 +630,7 @@ func _on_forecast_pressed() -> void:
 		var horse: Dictionary = horses_data[i]
 		var horse_name: String = str(horse.get("name", "마필"))
 		var form_score: float = GameState.get_recent_form_score(horse_name)
-		var score: float = HorseData.get_forecast_score(horse, form_score, rng)
+		var score: float = HorseDataRef.get_forecast_score(horse, form_score, rng)
 		ranking_rows.append({"index": i, "score": score})
 	ranking_rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a.get("score", 0.0)) > float(b.get("score", 0.0))
@@ -711,7 +712,7 @@ func debug_run_balance_test(rounds: int = 20) -> void:
 				var variance: float = sim_rng.randf_range(-1.5, 1.5) * (1.3 - consistency) * float(sim_conditions.get("track_variance_scale", 1.0))
 				var delta_m: float = maxf((pace * fatigue + variance) * dt, 0.0)
 				var skill_form: float = _array_value_from_conditions(sim_conditions, "horse_form_skill", i, 1.0)
-				var skill_bonus: float = HorseData.skill_trigger_bonus_m(horse, sim_distance[i], sim_stamina[i], sim_stamina_max[i], dt, sim_skill_used[i], sim_rng, skill_form)
+				var skill_bonus: float = HorseDataRef.skill_trigger_bonus_m(horse, sim_distance[i], sim_stamina[i], sim_stamina_max[i], dt, sim_skill_used[i], sim_rng, skill_form)
 				if skill_bonus > 0.0:
 					sim_skill_used[i] = true
 				delta_m += skill_bonus
