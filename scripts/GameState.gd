@@ -1,4 +1,5 @@
 extends Node
+const HorseDataRef = preload("res://scripts/HorseData.gd")
 
 const START_COINS: int = 1000
 const TEMP_MULTIPLIER: float = 2.0
@@ -17,7 +18,7 @@ func _ready() -> void:
 func default_data() -> Dictionary:
 	var horse_stat_defaults: Dictionary = {}
 	var horse_form_defaults: Dictionary = {}
-	for horse in HorseData.get_all_horses():
+	for horse in HorseDataRef.get_all_horses():
 		var horse_name: String = str(horse.get("name", "마필"))
 		horse_stat_defaults[horse_name] = {
 			"selected": 0,
@@ -63,7 +64,7 @@ func save_game() -> void:
 	SaveSystem.save(data)
 
 func _ensure_horse_maps() -> void:
-	for horse in HorseData.get_all_horses():
+	for horse in HorseDataRef.get_all_horses():
 		var horse_name: String = str(horse.get("name", "마필"))
 		if not horse_stats.has(horse_name):
 			horse_stats[horse_name] = {"selected": 0, "wins": 0}
@@ -114,7 +115,7 @@ func get_recent_form_text(horse_name: String, count: int = 3) -> String:
 	return "최근 성적: %s" % " - ".join(texts)
 
 func update_recent_form_by_order(order_indices: Array[int]) -> void:
-	var horses: Array[Dictionary] = HorseData.get_all_horses()
+	var horses: Array[Dictionary] = HorseDataRef.get_all_horses()
 	for i in order_indices.size():
 		var horse_index: int = order_indices[i]
 		if horse_index < 0 or horse_index >= horses.size():
@@ -132,7 +133,7 @@ func update_recent_form_by_order(order_indices: Array[int]) -> void:
 		horse_recent_form[horse_name] = form_array
 
 func apply_race_result(selected_index: int, winner_index: int, bet: int, multiplier: float = TEMP_MULTIPLIER, finish_order: Array[int] = []) -> Dictionary:
-	var horses: Array[Dictionary] = HorseData.get_all_horses()
+	var horses: Array[Dictionary] = HorseDataRef.get_all_horses()
 	var selected: Dictionary = horses[clamp(selected_index, 0, horses.size() - 1)]
 	var winner: Dictionary = horses[clamp(winner_index, 0, horses.size() - 1)]
 

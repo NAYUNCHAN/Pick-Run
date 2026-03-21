@@ -1,4 +1,5 @@
 extends Control
+const HorseDataRef = preload("res://scripts/HorseData.gd")
 
 @onready var summary_label: Label = $MarginContainer/VBox/SummaryLabel
 @onready var horse_stats_label: Label = $MarginContainer/VBox/HorseStatsLabel
@@ -25,7 +26,7 @@ func refresh_ui() -> void:
 	]
 
 	var horse_lines: Array[String] = []
-	for horse in HorseData.get_all_horses():
+	for horse in HorseDataRef.get_all_horses():
 		var name := str(horse["name"])
 		var hstat = GameState.horse_stats.get(name, {"selected": 0, "wins": 0})
 		var selected := int(hstat.get("selected", 0))
