@@ -1,4 +1,5 @@
 extends Node
+const HorseDataRef = preload("res://scripts/HorseData.gd")
 
 signal progress_changed(ratio: float)
 signal completed(prob: Array[float], mult: Array[float])
@@ -84,7 +85,7 @@ func _simulate_one_race(horses: Array[Dictionary], conditions: Dictionary, rng: 
 			var variance: float = rng.randf_range(-1.5, 1.5) * (1.3 - consistency) * float(conditions.get("track_variance_scale", 1.0))
 			var move_delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance) * time_delta_scaled, 0.0)
 
-			var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], time_delta_scaled, skill_used[i], rng, _array_value(form_skill, i, 1.0))
+			var skill_bonus_m: float = HorseDataRef.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], time_delta_scaled, skill_used[i], rng, _array_value(form_skill, i, 1.0))
 		for i in count:
 			if race_distance_m[i] >= TRACK_DISTANCE_M:
 				continue
@@ -96,7 +97,7 @@ func _simulate_one_race(horses: Array[Dictionary], conditions: Dictionary, rng: 
 			var variance: float = rng.randf_range(-1.5, 1.5) * (1.3 - consistency) * float(conditions.get("track_variance_scale", 1.0))
 			var move_delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance) * time_delta_scaled, 0.0)
 
-			var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], time_delta_scaled, skill_used[i], rng, _array_value(form_skill, i, 1.0))
+			var skill_bonus_m: float = HorseDataRef.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], time_delta_scaled, skill_used[i], rng, _array_value(form_skill, i, 1.0))
 	while elapsed < 160.0:
 		for i in count:
 			if race_distance_m[i] >= TRACK_DISTANCE_M:
@@ -109,7 +110,7 @@ func _simulate_one_race(horses: Array[Dictionary], conditions: Dictionary, rng: 
 			var variance: float = rng.randf_range(-0.9, 0.9) * (1.2 - consistency) * float(conditions.get("track_variance_scale", 1.0))
 			var move_delta_m: float = maxf((base_pace_mps * fatigue_multiplier + variance) * dt, 0.0)
 
-			var skill_bonus_m: float = HorseData.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], dt, skill_used[i], rng)
+			var skill_bonus_m: float = HorseDataRef.skill_trigger_bonus_m(horses[i], race_distance_m[i], stamina_current[i], stamina_max[i], dt, skill_used[i], rng)
 			if skill_bonus_m > 0.0:
 				skill_used[i] = true
 			move_delta_m += skill_bonus_m
